@@ -1,0 +1,38 @@
+stages:
+  - build
+  - test
+
+variables:
+  IMAGE_NAME: "Docker-image"
+
+build:
+  stage: build
+  script:
+    - dotnet restore
+    - dotnet build --configuration Release
+    - dotnet publish --configuration Release --output./publish
+  artifacts:
+    paths:
+      -./publish
+
+test:
+  stage: test
+  script:
+    - dotnet test --no-build
+
+docker_build:
+  image: docker:latest
+  stage: docker
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_NAME.
+    - docker push $IMAGE_NAME
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $IMAGE_NAME
